@@ -4,12 +4,16 @@ An Emacs major mode and streaming viewer for FASTQ sequencing reads —
 the raw output of DNA sequencers. Open a 3 GB `.fastq.gz` in a few
 milliseconds: the file is never loaded, only the page of reads on screen.
 
-| Streaming viewer (`fastq-view`) | Read statistics (`fastq-stats`) |
-|:--:|:--:|
-| [![fastq-view on a gzipped paired-end file](docs/screenshots/viewer.png)](docs/screenshots/viewer.png) | [![fastq-stats report](docs/screenshots/stats.png)](docs/screenshots/stats.png) |
-| Bases coloured by nucleotide, qualities by Phred bin, weak bases (below Q20) dimmed and underlined. The header line tracks your place in the file; eldoc explains the base at point. | Read count, lengths, GC and N content, mean quality, Q20/Q30 — over a sample by default, the whole file with `C-u`, exact via seqkit when installed. |
+[![fastq-mode viewing a NovaSeq-style paired-end FASTQ file](docs/screenshots/neodoom-viewer.png)](docs/screenshots/neodoom-viewer.png)
 
-Screenshots are rendered from synthetic demo files (`make screenshots`).
+Bases coloured by nucleotide, qualities by Phred bin, weak bases (below
+Q20) underlined, and eldoc giving the Phred score and error probability of
+the base at point. The read with the long `GGGG...` tail ran through its
+adapter into poly-G.
+
+More screenshots (failing runs, header decoding, R1/R2 mates, statistics,
+Phred+64): [docs/README.md](docs/README.md). All of them use synthetic
+sample data from [`examples/`](examples/).
 
 ## Why
 
