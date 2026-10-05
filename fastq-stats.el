@@ -5,7 +5,6 @@
 ;; Author: David Awad <davidawad@protonmail.com>
 ;; Maintainer: David Awad <davidawad@protonmail.com>
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: data, tools
 ;; URL: https://gitlab.com/davidawad/fastq-mode
 

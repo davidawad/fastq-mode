@@ -5,7 +5,6 @@
 ;; Author: David Awad <davidawad@protonmail.com>
 ;; Maintainer: David Awad <davidawad@protonmail.com>
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: data, tools
 ;; URL: https://gitlab.com/davidawad/fastq-mode
 
@@ -24,6 +23,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'subr-x)
 
 (defgroup fastq nil
   "View and inspect FASTQ sequencing reads."
@@ -46,7 +46,7 @@
   "Lines per FASTQ record.")
 
 (defun fastq-line-role (line)
-  "Role of 1-based LINE in a buffer that starts at a record boundary.
+  "Return the role of 1-based LINE, counting from a record boundary.
 One of `header', `sequence', `separator' or `quality'."
   (aref [header sequence separator quality]
         (mod (1- line) fastq-lines-per-record)))

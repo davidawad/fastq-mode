@@ -5,7 +5,6 @@
 ;; Author: David Awad <davidawad@protonmail.com>
 ;; Maintainer: David Awad <davidawad@protonmail.com>
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: data, tools, faces
 ;; URL: https://gitlab.com/davidawad/fastq-mode
 
@@ -111,7 +110,7 @@
     ('fair 'fastq-quality-fair-face) (_ 'fastq-quality-good-face)))
 
 (defun fastq--put-runs (beg end face-fn)
-  "Apply faces from FACE-FN (index -> face) over BEG..END in runs."
+  "Apply faces from FACE-FN (index -> face) to BEG..END, run by run."
   (let ((i beg))
     (while (< i end)
       (let* ((face (funcall face-fn (- i beg))) (j (1+ i)))

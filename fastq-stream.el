@@ -5,7 +5,6 @@
 ;; Author: David Awad <davidawad@protonmail.com>
 ;; Maintainer: David Awad <davidawad@protonmail.com>
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: data, tools
 ;; URL: https://gitlab.com/davidawad/fastq-mode
 
@@ -40,21 +39,25 @@
   "Program used to decompress .gz files (run as PROGRAM -dc -- FILE).
 pigz or a gzip from Git for Windows work too.  When it is not found,
 small files fall back to Emacs' own zlib (see `fastq-zlib-max-size')."
-  :type 'string)
+  :type 'string
+  :group 'fastq)
 
 (defcustom fastq-zlib-max-size (* 64 1024 1024)
   "Largest compressed file, in bytes, that may be decompressed with zlib.
 zlib inflates the whole file in memory, so it is only a fallback for
 machines without `fastq-gzip-program'."
-  :type 'integer)
+  :type 'integer
+  :group 'fastq)
 
 (defcustom fastq-chunk-size (* 4 1024 1024)
   "Bytes read from a plain file per chunk."
-  :type 'integer)
+  :type 'integer
+  :group 'fastq)
 
 (defcustom fastq-checkpoint-interval 10000
   "Records between remembered byte offsets in plain (uncompressed) files."
-  :type 'integer)
+  :type 'integer
+  :group 'fastq)
 
 ;; Defined only in builds with zlib.
 (declare-function zlib-available-p "decompress.c" ())
@@ -62,7 +65,7 @@ machines without `fastq-gzip-program'."
                   (start end &optional allow-partial))
 
 (defun fastq-gzip-file-p (file)
-  "Non-nil if FILE starts with the gzip magic bytes."
+  "Return non-nil if FILE begins with the gzip magic bytes."
   (with-temp-buffer
     (set-buffer-multibyte nil)
     (insert-file-contents-literally file nil 0 2)
@@ -76,7 +79,7 @@ machines without `fastq-gzip-program'."
   "Non-nil if this Emacs can inflate gzip data itself."
   (and (fboundp 'zlib-available-p) (zlib-available-p)))
 
-(defun fastq-source-kind (file)
+(defun fastq-file-kind (file)
   "How FILE is read: `plain', `gzip' or `zlib'.
 Signals `fastq-error' if a .gz file cannot be decompressed here."
   (cond
@@ -93,23 +96,25 @@ Signals `fastq-error' if a .gz file cannot be decompressed here."
 
 (cl-defstruct (fastq-source (:constructor fastq-source--make) (:copier nil))
   "A chunked reader filling the current buffer."
-  file kind proc (pos 0) eof)
+  file kind proc errbuf (pos 0) (extra 0) eof)
 
 (defun fastq-source-open (file &optional start-byte)
   "Open FILE for reading into the current (unibyte) buffer.
 START-BYTE seeks plain files; it must be 0 or nil for compressed ones."
-  (let* ((kind (fastq-source-kind file))
+  (let* ((kind (fastq-file-kind file))
          (src (fastq-source--make :file file :kind kind :pos (or start-byte 0))))
     (when (and (not (eq kind 'plain)) (> (fastq-source-pos src) 0))
       (fastq--error "Cannot seek in compressed file %s" file))
     (when (eq kind 'gzip)
-      (setf (fastq-source-proc src)
-            (make-process
-             :name "fastq-gunzip" :buffer (current-buffer)
-             :command (list (fastq--gzip-executable) "-dc" "--" (expand-file-name file))
-             :connection-type 'pipe :coding 'binary :noquery t
-             :stderr (get-buffer-create " *fastq-gunzip-stderr*")
-             :sentinel #'ignore)))
+      (let ((err (generate-new-buffer " *fastq-gunzip-stderr*")))
+        (setf (fastq-source-errbuf src) err
+              (fastq-source-proc src)
+              (make-process
+               :name "fastq-gunzip" :buffer (current-buffer)
+               :command (list (fastq--gzip-executable) "-dc" "--"
+                              (expand-file-name file))
+               :connection-type 'pipe :coding 'binary :noquery t
+               :stderr err :sentinel #'ignore))))
     src))
 
 (defun fastq--fill-plain (src)
@@ -142,24 +147,43 @@ START-BYTE seeks plain files; it must be 0 or nil for compressed ones."
                 (or (accept-process-output proc 0.2)
                     (process-live-p proc))))
     (when (and (= size (buffer-size)) (not (process-live-p proc)))
-      (unless (zerop (process-exit-status proc))
-        (fastq--error "gzip failed on %s (exit %s)" (fastq-source-file src)
-                      (process-exit-status proc))))
+      (while (accept-process-output proc 0))
+      (unless (or (> (buffer-size) size) (zerop (process-exit-status proc)))
+        (fastq--error "Gzip failed on %s (exit %s): %s" (fastq-source-file src)
+                      (process-exit-status proc)
+                      (with-current-buffer (fastq-source-errbuf src)
+                        (string-trim (buffer-string))))))
     (> (buffer-size) size)))
 
 (defun fastq-source-fill (src)
-  "Append more data from SRC to the current buffer; nil at end of input."
+  "Append more data from SRC to the current buffer; nil at end of input.
+At the end, a missing final newline is supplied (once) so the last line
+counts as complete."
   (unless (fastq-source-eof src)
     (or (pcase (fastq-source-kind src)
           ('plain (fastq--fill-plain src))
           ('zlib (fastq--fill-zlib src))
           ('gzip (fastq--fill-gzip src)))
-        (progn (setf (fastq-source-eof src) t) nil))))
+        (progn
+          (setf (fastq-source-eof src) t)
+          (when (and (> (buffer-size) 0) (/= (char-before (point-max)) ?\n))
+            (goto-char (point-max))
+            (insert "\n")
+            (cl-incf (fastq-source-extra src))
+            t)))))
+
+(defun fastq-source-byte (src)
+  "Byte offset in the file of the current buffer's first character (plain SRC)."
+  (- (+ (fastq-source-pos src) (fastq-source-extra src)) (buffer-size)))
 
 (defun fastq-source-close (src)
-  "Stop SRC's process, if any."
-  (let ((p (fastq-source-proc src)))
-    (when (and p (process-live-p p)) (delete-process p))))
+  "Stop SRC's processes and drop its stderr buffer."
+  (let ((p (fastq-source-proc src)) (err (fastq-source-errbuf src)))
+    (when (and p (process-live-p p)) (delete-process p))
+    (when (buffer-live-p err)
+      (let ((ep (get-buffer-process err)))
+        (when ep (delete-process ep)))
+      (kill-buffer err))))
 
 ;;;; Lines
 
@@ -176,7 +200,7 @@ Return the number of lines actually skipped (less at end of input).
 ON-CHECKPOINT, if non-nil, is called with (RECORD . BYTE) at every
 `fastq-checkpoint-interval' records of a plain SRC; FIRST-RECORD is the
 0-based record number of the buffer's first line."
-  (let ((left skip) (base (- (fastq-source-pos src) (buffer-size)))
+  (let ((left skip) (base (fastq-source-byte src))
         (lines-done 0) (last-msg (float-time)))
     (while (> left 0)
       (goto-char (point-min))
@@ -219,14 +243,11 @@ ON-CHECKPOINT is passed (RECORD . BYTE) pairs; see `fastq--skip-lines'."
       (unwind-protect
           (let* ((skipped (fastq--skip-lines src skip on-checkpoint first-record))
                  (byte (and (eq (fastq-source-kind src) 'plain)
-                            (- (fastq-source-pos src) (buffer-size))))
+                            (fastq-source-byte src)))
                  (got 0))
             (while (progn (goto-char (point-min))
                           (setq got (fastq--forward-complete-lines take))
                           (and (< got take) (fastq-source-fill src))))
-            ;; a final line without a newline still counts at end of file
-            (when (and (< got take) (fastq-source-eof src) (not (eobp)))
-              (goto-char (point-max)) (insert "\n") (cl-incf got))
             (list :text (buffer-substring-no-properties (point-min) (point))
                   :lines got :skipped skipped :byte byte
                   :eof (fastq-source-eof src)))

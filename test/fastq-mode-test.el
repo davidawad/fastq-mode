@@ -81,7 +81,7 @@
     (should (string-match-p "Read 1, base 2/4: C  Q2 (error 63.1%, low)" (fastq-eldoc-function)))
     (forward-line 2)
     (forward-char 2)
-    (should (string-match-p "base 3/4: G  Q20 (error 1%, poor)" (fastq-eldoc-function)))
+    (should (string-match-p "base 3/4: G  Q20 (error 1%, fair)" (fastq-eldoc-function)))
     (end-of-line)
     (should (string-match-p "Read 1: 4 bases, mean Q" (fastq-eldoc-function)))))
 
@@ -161,8 +161,8 @@
                 (should (eq major-mode 'fastq-view-mode))
                 (should (looking-at "@SYN01")))
             (kill-buffer buf)))
-        (let ((fastq-view-threshold 100)
-              (buf (find-file-noselect (fastq-test-fixture "sample_R2_001.fastq"))))
+        (let* ((fastq-view-threshold 100)
+               (buf (find-file-noselect (fastq-test-fixture "sample_R2_001.fastq"))))
           (unwind-protect
               (should (eq (buffer-local-value 'major-mode buf) 'fastq-view-mode))
             (kill-buffer buf))))
