@@ -108,7 +108,8 @@
   "Lines describing the read-length distribution of ST (top 10 lengths)."
   (let* (pairs (h (fastq-stats-lengths st)) (reads (fastq-stats-reads st)))
     (maphash (lambda (k v) (push (cons k v) pairs)) h)
-    (setq pairs (seq-take (sort pairs (lambda (a b) (> (cdr a) (cdr b)))) 10))
+    (setq pairs (sort pairs (lambda (a b) (> (cdr a) (cdr b)))))
+    (setq pairs (cl-subseq pairs 0 (min 10 (length pairs))))
     (mapconcat
      (lambda (p)
        (let ((pct (fastq--pct (cdr p) reads)))
