@@ -55,12 +55,35 @@ Requires Emacs 29.1+. Optional: `gzip` (any OS, for `.gz` files of any
 size; without it, `.gz` files under 64 MB use Emacs' built-in zlib) and
 `seqkit`.
 
+With `package-vc` (built into Emacs 29+):
+
+```elisp
+(package-vc-install "https://github.com/davidawad/fastq-mode")
+(fastq-auto-view-mode 1)   ; open .fastq.gz and large .fastq in the streaming viewer
+```
+
+With `use-package` and straight.el:
+
 ```elisp
 (use-package fastq-mode
-  :straight (:host gitlab :repo "davidawad/fastq-mode")
-  :config
-  ;; open .fastq.gz and large .fastq files in the streaming viewer
-  (fastq-auto-view-mode 1))
+  :straight (:host github :repo "davidawad/fastq-mode")
+  :config (fastq-auto-view-mode 1))
+```
+
+With `use-package` and Elpaca:
+
+```elisp
+(use-package fastq-mode
+  :ensure (:host github :repo "davidawad/fastq-mode")
+  :config (fastq-auto-view-mode 1))
+```
+
+With `use-package` and `:vc` (Emacs 30+):
+
+```elisp
+(use-package fastq-mode
+  :vc (:url "https://github.com/davidawad/fastq-mode")
+  :config (fastq-auto-view-mode 1))
 ```
 
 `.fastq` and `.fq` files open in `fastq-mode` automatically. Without
@@ -87,6 +110,15 @@ compressed and large files.
 
 In `fastq-mode` (small, editable files) the same commands are on `C-c C-n`,
 `C-c C-p`, `C-c C-g`, `C-c C-m`, `C-c C-s`, `C-c C-h` and `C-c C-v`.
+
+## Performance
+
+Only the page of reads on screen is ever in memory. On a real 3.3 GB
+paired-end `.fastq.gz` from a NovaSeq-class run, opening the first page
+takes about 0.02 s with peak memory around 60 MB. Jumping to read
+1,000,000 takes about 1 to 2 s, because gzip has no random access and the
+stream has to be decompressed up to that point; plain `.fastq` files keep
+a byte index, so later jumps skip ahead.
 
 ## Limits
 
@@ -152,8 +184,8 @@ Format references:
 
 ## Related
 
-- [genetics.el](https://gitlab.com/davidawad/genetics-el) (variant-level
-  data) and [genome-cli](https://gitlab.com/davidawad/genome-cli) (its
+- [genetics.el](https://github.com/davidawad/genetics.el) (variant-level
+  data) and [genome-cli](https://github.com/davidawad/genome-cli) (its
   `genome pipeline` aligns FASTQ reads into a VCF).
 
 ## Licence
