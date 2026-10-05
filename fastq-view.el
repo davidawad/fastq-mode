@@ -67,7 +67,7 @@
   "Fetch COUNT records of FILE from 0-based record START.
 Return the `fastq-stream-lines' plist, plus :start, the record actually
 shown first (moved back when START is past the end of the file)."
-  (let* ((plain (eq (fastq-source-kind file) 'plain))
+  (let* ((plain (eq (fastq-file-kind file) 'plain))
          (cp (if plain (fastq-view--nearest-checkpoint file start) '(0 . 0)))
          (res (fastq-stream-lines
                file (* 4 (- start (car cp))) (* 4 count)
@@ -118,9 +118,12 @@ Point goes to the first record, or the last one when AT-END."
   "Show record N (1-based), loading its page if needed."
   (interactive "nGo to record: ")
   (let ((i (1- (max 1 n))))
-    (unless (and (>= i fastq-record-base)
-                 (< i (+ fastq-record-base (fastq-view--records-on-page))))
-      (fastq-view--load i))
+    (cond
+     ((< i fastq-record-base)
+      ;; going back: the page ends at the record
+      (fastq-view--load (max 0 (- i (1- fastq-view-page-records)))))
+     ((>= i (+ fastq-record-base (fastq-view--records-on-page)))
+      (fastq-view--load i)))
     (goto-char (point-min))
     (forward-line (* 4 (- i fastq-record-base)))))
 

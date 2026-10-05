@@ -60,8 +60,10 @@
     (let ((f (make-temp-file "fastq-len-" nil ".fastq")))
       (unwind-protect
           (progn
-            (with-temp-file f
-              (insert (fastq-test-record 0 30) (fastq-test-record 1 30) (fastq-test-record 2 50)))
+            (let ((coding-system-for-write 'no-conversion))
+              (with-temp-file f
+                (insert (fastq-test-record 0 30) (fastq-test-record 1 30)
+                        (fastq-test-record 2 50))))
             (let ((st (fastq-compute-stats f)))
               (should (= (fastq-stats-min-len st) 30))
               (should (= (fastq-stats-max-len st) 50))
