@@ -6,7 +6,7 @@
 ;; Maintainer: David Awad <davidawad@protonmail.com>
 ;; Version: 0.1.0
 ;; Keywords: data, tools, faces
-;; URL: https://gitlab.com/davidawad/fastq-mode
+;; URL: https://github.com/davidawad/fastq-mode
 
 ;; This file is not part of GNU Emacs.
 

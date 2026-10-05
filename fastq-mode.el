@@ -7,7 +7,7 @@
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: data, tools
-;; URL: https://gitlab.com/davidawad/fastq-mode
+;; URL: https://github.com/davidawad/fastq-mode
 
 ;; This file is not part of GNU Emacs.
 
