@@ -1,0 +1,24 @@
+# Fast check on every push: one Linux job, latest Emacs (about a minute).
+# The full Linux/macOS/Windows x Emacs 29/30 matrix is ci-full.yml.
+name: test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ubuntu-latest / Emacs 30.1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: purcell/setup-emacs@master
+        with:
+          version: '30.1'
+      - name: Byte-compile (warnings are errors)
+        run: emacs -Q --batch -l test/run-tests.el compile
+      - name: Checkdoc
+        run: emacs -Q --batch -l test/run-tests.el checkdoc
+      - name: Test
+        run: make test

@@ -29,6 +29,10 @@
 
 (defconst shot-dir (expand-file-name "docs/screenshots" shot-root))
 
+;; Show the demo files as a user's checkout, not wherever this runs.
+(setq directory-abbrev-alist
+      (list (cons (concat "\\`" (regexp-quote shot-root)) "~/src/fastq-mode/")))
+
 (defconst shot-palette
   '((bg . "#0d0e1c") (fg . "#ffffff") (bar . "#2d2f42") (bar-fg . "#e0e0e0")
     (font-lock-function-name-face . "#feacd0")
