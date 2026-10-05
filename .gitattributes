@@ -1,0 +1,5 @@
+# Keep LF everywhere (FASTQ fixtures are byte-offset sensitive), even on
+# Windows checkouts with core.autocrlf.
+* text=auto eol=lf
+*.gz binary
+*.png binary

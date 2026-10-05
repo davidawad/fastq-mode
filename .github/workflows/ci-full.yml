@@ -1,0 +1,55 @@
+# Full cross-platform matrix. Not run on every push (test.yml is the fast
+# check): on demand, on version tags, and weekly.
+name: ci-full
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  schedule:
+    - cron: '17 6 * * 1'
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Emacs ${{ matrix.emacs }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        emacs: ['29.1', '30.1']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Emacs (Linux, macOS)
+        if: runner.os != 'Windows'
+        uses: purcell/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs }}
+
+      - name: Install Emacs (Windows)
+        if: runner.os == 'Windows'
+        uses: jcs090218/setup-emacs-windows@master
+        with:
+          version: ${{ matrix.emacs }}
+
+      # gzip is optional: without it, small .gz files use Emacs' zlib.
+      - name: Tool report
+        shell: bash
+        run: |
+          emacs --version | head -1
+          emacs -Q --batch --eval '(message "zlib: %s  gzip: %s" (and (fboundp (quote zlib-available-p)) (zlib-available-p)) (executable-find "gzip"))'
+
+      - name: Byte-compile (warnings are errors)
+        run: emacs -Q --batch -l test/run-tests.el compile
+
+      - name: Checkdoc
+        run: emacs -Q --batch -l test/run-tests.el checkdoc
+
+      - name: Test (make)
+        if: runner.os != 'Windows'
+        run: make test
+
+      - name: Test (run-tests.el, no make)
+        if: runner.os == 'Windows'
+        run: emacs -Q --batch -l test/run-tests.el test
