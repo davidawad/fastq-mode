@@ -123,7 +123,8 @@ ARGS: :lines N, :cols N, :header STRING, :mode STRING, :echo STRING."
        (buf (fastq-view-noselect demo 41)))
   (with-current-buffer buf
     (font-lock-ensure)
-    (let ((header (format-mode-line header-line-format)))
+    ;; `format-mode-line' needs a window, which batch Emacs lacks
+    (let ((header (fastq-view--header-line)))
       (goto-char (point-min))
       ;; put point on a weak base so the echo area shows eldoc for it
       (forward-line (+ 4 1))
