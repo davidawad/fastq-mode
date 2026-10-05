@@ -125,7 +125,8 @@ Point goes to the first record, or the last one when AT-END."
      ((>= i (+ fastq-record-base (fastq-view--records-on-page)))
       (fastq-view--load i)))
     (goto-char (point-min))
-    (forward-line (* 4 (- i fastq-record-base)))))
+    (forward-line (* 4 (max 0 (min (- i fastq-record-base)
+                                   (1- (fastq-view--records-on-page))))))))
 
 (defun fastq-view-next-record (&optional n)
   "Move N records forward, crossing pages."
